@@ -20,6 +20,8 @@
       --text-muted: #64748b;
       --border-color: #e2e8f0;
       --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
+      --success-color: #10b981;
+      --error-color: #ef4444;
     }
 
     * {
@@ -35,11 +37,58 @@
       color: var(--text-main);
       min-height: 100vh;
       padding: 40px 20px;
+      position: relative;
     }
 
     .container {
       max-width: 680px;
       margin: 0 auto;
+    }
+
+    /* Container Notifikasi Toast */
+    #toastContainer {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      min-width: 280px;
+      padding: 14px 20px;
+      border-radius: 12px;
+      background: white;
+      color: #0f172a;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 600;
+      font-size: 0.95rem;
+      animation: slideIn 0.3s ease forwards;
+    }
+
+    .toast.success {
+      border-left: 5px solid var(--success-color);
+    }
+    .toast.success i { color: var(--success-color); }
+
+    .toast.error {
+      border-left: 5px solid var(--error-color);
+    }
+    .toast.error i { color: var(--error-color); }
+
+    @keyframes slideIn {
+      from { transform: translateX(100%); opacity: 0; }
+      to { transform: translateX(0); opacity: 1; }
+    }
+
+    @keyframes fadeOut {
+      from { transform: translateX(0); opacity: 1; }
+      to { transform: translateX(100%); opacity: 0; }
     }
 
     /* Header */
@@ -231,10 +280,14 @@
       .filter-box { flex-direction: column; gap: 0; }
       .filter-box input, .filter-box select { margin-bottom: 12px; }
       .diary-header { flex-direction: column; gap: 6px; }
+      #toastContainer { left: 20px; right: 20px; }
     }
   </style>
 </head>
 <body>
+
+  <!-- Container Notifikasi Pop-up -->
+  <div id="toastContainer"></div>
 
   <div class="container">
     <!-- Header Utama -->
@@ -299,10 +352,31 @@
     const searchInput = document.getElementById('searchInput');
     const sortOrder = document.getElementById('sortOrder');
     const entryDateInput = document.getElementById('entryDate');
+    const toastContainer = document.getElementById('toastContainer');
 
     let searchTimeout = null;
 
-    // 1. Set Default Input Tanggal ke Waktu Sekarang
+    // 1. Fungsi Tampilkan Notifikasi Toast
+    function showToast(message, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      
+      const iconClass = type === 'success' ? 'fa-circle-check' : 'fa-circle-xmark';
+      toast.innerHTML = `
+        <i class="fa-solid ${iconClass}"></i>
+        <span>${escapeHtml(message)}</span>
+      `;
+
+      toastContainer.appendChild(toast);
+
+      // Otomatis hilangkan notifikasi setelah 3.5 detik
+      setTimeout(() => {
+        toast.style.animation = 'fadeOut 0.3s ease forwards';
+        setTimeout(() => toast.remove(), 300);
+      }, 3500);
+    }
+
+    // 2. Set Default Input Tanggal ke Waktu Sekarang
     function setDefaultDate() {
       const now = new Date();
       now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
@@ -310,7 +384,7 @@
     }
     setDefaultDate();
 
-    // 2. Tampilkan Tanggal Hari Ini di Header
+    // 3. Tampilkan Tanggal Hari Ini di Header
     function updateLiveClock() {
       const now = new Date();
       const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
@@ -318,7 +392,7 @@
     }
     updateLiveClock();
 
-    // 3. Format Tanggal Tampilan Catatan
+    // 4. Format Tanggal Tampilan Catatan
     function formatDate(dateString) {
       const date = new Date(dateString);
       return date.toLocaleDateString('id-ID', {
@@ -330,7 +404,7 @@
       });
     }
 
-    // 4. Ambil Data Catatan dari Supabase
+    // 5. Ambil Data Catatan dari Supabase
     async function fetchDiaries() {
       const keyword = searchInput.value.trim();
       const isAscending = sortOrder.value === 'asc';
@@ -373,16 +447,16 @@
       `).join('');
     }
 
-    // 5. Listener Pencarian (Debounce 300ms)
+    // 6. Listener Pencarian (Debounce 300ms)
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(fetchDiaries, 300);
     });
 
-    // 6. Listener Filter Urutan
+    // 7. Listener Filter Urutan
     sortOrder.addEventListener('change', fetchDiaries);
 
-    // 7. Simpan Catatan Baru dengan Tanggal Pilihan
+    // 8. Simpan Catatan Baru dengan Tanggal Pilihan + Notifikasi
     diaryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
@@ -401,11 +475,15 @@
         }]);
 
       if (error) {
-        alert('Gagal menyimpan: ' + error.message);
+        // Tampilkan Notifikasi Gagal
+        showToast('Gagal menyimpan: ' + error.message, 'error');
       } else {
+        // Tampilkan Notifikasi Sukses
+        showToast('Catatan diary berhasil disimpan!', 'success');
+        
         diaryForm.reset();
         setDefaultDate();
-        await fetchDiaries();
+        await fetchDiaries(); // Perbarui daftar catatan di halaman
       }
 
       submitBtn.disabled = false;
