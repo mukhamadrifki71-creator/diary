@@ -344,7 +344,8 @@
     const SUPABASE_URL = 'https://pfigoreihbgeqigfgsv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmaWdvcmVpaHhiZ2VxaWdmZ3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODUzODgsImV4cCI6MjEwNTY2MTM4OH0.jPbcbihPPiAtlCmLihHkHWEETWQOeRNEryRwikH2OlQ';
 
-    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+    // Penggunaan nama variabel 'supabaseClient' untuk menghindari bentrok deklarasi
+    const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const diaryForm = document.getElementById('diaryForm');
     const diaryList = document.getElementById('diaryList');
@@ -369,7 +370,6 @@
 
       toastContainer.appendChild(toast);
 
-      // Otomatis hilangkan notifikasi setelah 3.5 detik
       setTimeout(() => {
         toast.style.animation = 'fadeOut 0.3s ease forwards';
         setTimeout(() => toast.remove(), 300);
@@ -409,7 +409,7 @@
       const keyword = searchInput.value.trim();
       const isAscending = sortOrder.value === 'asc';
 
-      let query = supabase
+      let query = supabaseClient
         .from('diaries')
         .select('*')
         .order('created_at', { ascending: isAscending });
@@ -456,7 +456,7 @@
     // 7. Listener Filter Urutan
     sortOrder.addEventListener('change', fetchDiaries);
 
-    // 8. Simpan Catatan Baru dengan Tanggal Pilihan + Notifikasi
+    // 8. Simpan Catatan Baru
     diaryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
@@ -466,7 +466,7 @@
       const content = document.getElementById('content').value;
       const selectedDate = new Date(entryDateInput.value).toISOString();
 
-      const { error } = await supabase
+      const { error } = await supabaseClient
         .from('diaries')
         .insert([{ 
           title: title, 
@@ -475,15 +475,12 @@
         }]);
 
       if (error) {
-        // Tampilkan Notifikasi Gagal
         showToast('Gagal menyimpan: ' + error.message, 'error');
       } else {
-        // Tampilkan Notifikasi Sukses
         showToast('Catatan diary berhasil disimpan!', 'success');
-        
         diaryForm.reset();
         setDefaultDate();
-        await fetchDiaries(); // Perbarui daftar catatan di halaman
+        await fetchDiaries();
       }
 
       submitBtn.disabled = false;
