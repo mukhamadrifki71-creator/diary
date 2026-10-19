@@ -3,106 +3,289 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Diary Saya</title>
+  <title>Diary Harian Saya</title>
+  <!-- Google Fonts & FontAwesome Icons -->
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <!-- Supabase JS CDN -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      max-width: 600px;
-      margin: 30px auto;
-      padding: 0 15px;
-      background-color: #f9f9f9;
-      color: #333;
+    :root {
+      --primary-color: #6366f1;
+      --primary-hover: #4f46e5;
+      --bg-gradient: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #311042 100%);
+      --card-bg: rgba(255, 255, 255, 0.95);
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.3), 0 8px 10px -6px rgba(0, 0, 0, 0.3);
     }
-    h1, h2 { text-align: center; }
-    
-    /* Style Form & Card */
-    form, .filter-container {
-      background: white;
-      padding: 20px;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      margin-bottom: 20px;
-    }
-    input[type="text"], textarea, select {
-      width: 100%;
-      padding: 10px;
-      margin-top: 8px;
-      margin-bottom: 15px;
-      border: 1px solid #ccc;
-      border-radius: 4px;
+
+    * {
       box-sizing: border-box;
+      margin: 0;
+      padding: 0;
     }
-    textarea { height: 100px; resize: vertical; }
-    button {
-      width: 100%;
-      background-color: #4CAF50;
+
+    body {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      background: var(--bg-gradient);
+      background-attachment: fixed;
+      color: var(--text-main);
+      min-height: 100vh;
+      padding: 40px 20px;
+    }
+
+    .container {
+      max-width: 680px;
+      margin: 0 auto;
+    }
+
+    /* Header & Waktu Real-time */
+    header {
+      text-align: center;
       color: white;
-      padding: 10px;
-      border: none;
-      border-radius: 4px;
-      cursor: pointer;
-      font-size: 16px;
+      margin-bottom: 30px;
     }
-    button:hover { background-color: #45a049; }
-    
-    /* Layout Pencarian & Filter */
-    .filter-box {
+
+    header h1 {
+      font-size: 2.2rem;
+      font-weight: 700;
+      margin-bottom: 8px;
+      letter-spacing: -0.5px;
+    }
+
+    .current-date-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(10px);
+      padding: 8px 18px;
+      border-radius: 50px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    /* Card Styling */
+    .card {
+      background: var(--card-bg);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      margin-bottom: 24px;
+      backdrop-filter: blur(10px);
+    }
+
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 600;
+      margin-bottom: 16px;
+      color: #0f172a;
       display: flex;
+      align-items: center;
       gap: 10px;
     }
-    .filter-box input { margin-bottom: 0; flex: 2; }
-    .filter-box select { margin-bottom: 0; flex: 1; }
 
-    .diary-card {
-      background: white;
-      padding: 15px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-      margin-bottom: 15px;
+    /* Form Controls */
+    .form-group {
+      margin-bottom: 16px;
     }
-    .diary-card h3 { margin-top: 0; color: #2c3e50; }
-    .diary-card small { color: #888; }
-    .highlight { background-color: #fff3cd; font-weight: bold; }
+
+    label {
+      display: block;
+      font-size: 0.875rem;
+      font-weight: 600;
+      margin-bottom: 6px;
+      color: #334155;
+    }
+
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 12px 16px;
+      border: 1.5px solid var(--border-color);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.95rem;
+      background: #f8fafc;
+      transition: all 0.2s ease;
+      color: var(--text-main);
+    }
+
+    input[type="text"]:focus, textarea:focus, select:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      background: #ffffff;
+      box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.15);
+    }
+
+    textarea {
+      height: 110px;
+      resize: vertical;
+    }
+
+    button {
+      width: 100%;
+      background: var(--primary-color);
+      color: white;
+      padding: 12px 20px;
+      border: none;
+      border-radius: 10px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+    }
+
+    button:hover {
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+    }
+
+    button:disabled {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
+
+    /* Filter & Search Box */
+    .filter-box {
+      display: flex;
+      gap: 12px;
+    }
+
+    .filter-box input { flex: 2; }
+    .filter-box select { flex: 1; }
+
+    /* List Diary Cards */
+    .diary-item {
+      background: var(--card-bg);
+      border-radius: 14px;
+      padding: 20px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.08);
+      border: 1px solid var(--border-color);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    .diary-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(0, 0, 0, 0.12);
+    }
+
+    .diary-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 10px;
+      gap: 12px;
+    }
+
+    .diary-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: #0f172a;
+    }
+
+    .diary-date {
+      font-size: 0.8rem;
+      background: #e0e7ff;
+      color: #3730a3;
+      padding: 4px 10px;
+      border-radius: 20px;
+      white-space: nowrap;
+      font-weight: 600;
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .diary-content {
+      color: #334155;
+      line-height: 1.6;
+      font-size: 0.95rem;
+      white-space: pre-line;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 40px 20px;
+      color: white;
+      opacity: 0.8;
+    }
+
+    .empty-state i {
+      font-size: 2.5rem;
+      margin-bottom: 12px;
+    }
+
+    /* Responsive Design */
+    @media (max-width: 576px) {
+      body { padding: 20px 12px; }
+      .filter-box { flex-direction: column; gap: 0; }
+      .filter-box input, .filter-box select { margin-bottom: 12px; }
+      .diary-header { flex-direction: column; gap: 6px; }
+    }
   </style>
 </head>
 <body>
 
-  <h1>📖 Diary Harian</h1>
+  <div class="container">
+    <!-- Header Utama -->
+    <header>
+      <h1><i class="fa-solid fa-book-bookmark"></i> Diary Harian</h1>
+      <div class="current-date-badge">
+        <i class="fa-regular fa-calendar-days"></i>
+        <span id="liveClock">Memuat tanggal...</span>
+      </div>
+    </header>
 
-  <!-- Form Tambah Catatan -->
-  <form id="diaryForm">
-    <h3>Tambah Catatan Baru</h3>
-    <label for="title">Judul Catatan</label>
-    <input type="text" id="title" placeholder="Contoh: Hari yang menyenangkan..." required>
+    <!-- Form Tambah Catatan -->
+    <div class="card">
+      <h2><i class="fa-solid fa-pen-to-square" style="color: var(--primary-color);"></i> Tulis Catatan Baru</h2>
+      <form id="diaryForm">
+        <div class="form-group">
+          <label for="title">Judul Catatan</label>
+          <input type="text" id="title" placeholder="Contoh: Pengalaman hari ini..." required>
+        </div>
 
-    <label for="content">Isi Diary</label>
-    <textarea id="content" placeholder="Tuliskan pengalamanmu hari ini..." required></textarea>
+        <div class="form-group">
+          <label for="content">Isi Diary</label>
+          <textarea id="content" placeholder="Ceritakan detail moment atau pikiranmu hari ini..." required></textarea>
+        </div>
 
-    <button type="submit" id="submitBtn">Simpan Catatan</button>
-  </form>
-
-  <h2>Daftar Catatan</h2>
-
-  <!-- Area Pencarian & Filter -->
-  <div class="filter-container">
-    <div class="filter-box">
-      <input type="text" id="searchInput" placeholder="🔍 Cari judul atau isi diary...">
-      <select id="sortOrder">
-        <option value="desc">Terbaru</option>
-        <option value="asc">Terlama</option>
-      </select>
+        <button type="submit" id="submitBtn">
+          <i class="fa-solid fa-paper-plane"></i> Simpan ke Diary
+        </button>
+      </form>
     </div>
-  </div>
 
-  <div id="diaryList">Memuat catatan...</div>
+    <!-- Filter & Pencarian -->
+    <div class="card" style="padding: 16px;">
+      <div class="filter-box">
+        <input type="text" id="searchInput" placeholder="🔍 Cari berdasarkan judul atau isi...">
+        <select id="sortOrder">
+          <option value="desc">📅 Terbaru Pertama</option>
+          <option value="asc">📅 Terlama Pertama</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- List Catatan -->
+    <div id="diaryList">Memuat catatan...</div>
+  </div>
 
   <script>
     // GANTI DENGAN KREDENSIAL SUPABASE ANDA
     const SUPABASE_URL = 'https://pfigoreihxbgeqigfgsv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmaWdvcmVpaHhiZ2VxaWdmZ3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODUzODgsImV4cCI6MjEwNTY2MTM4OH0.jPbcbihPPiAtlCmLihHkHWEETWQOeRNEryRwikH2OlQ';
-    
+
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const diaryForm = document.getElementById('diaryForm');
@@ -113,18 +296,36 @@
 
     let searchTimeout = null;
 
-    // Fungsi Mengambil & Memfilter Catatan dari Supabase
+    // 1. Fungsi Tampilkan Tanggal Hari Ini di Header
+    function updateLiveClock() {
+      const now = new Date();
+      const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
+      document.getElementById('liveClock').textContent = now.toLocaleDateString('id-ID', options);
+    }
+    updateLiveClock();
+
+    // 2. Format Tanggal untuk Kartu Catatan (misal: "20 Okt 2026, 14:30")
+    function formatDate(dateString) {
+      const date = new Date(dateString);
+      return date.toLocaleDateString('id-ID', {
+        day: 'numeric',
+        month: 'short',
+        year: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      });
+    }
+
+    // 3. Fungsi Ambil Data Catatan dari Supabase
     async function fetchDiaries() {
       const keyword = searchInput.value.trim();
       const isAscending = sortOrder.value === 'asc';
 
-      // Query dasar ke Supabase
       let query = supabase
         .from('diaries')
         .select('*')
         .order('created_at', { ascending: isAscending });
 
-      // Jika ada kata kunci pencarian, filter berdasarkan Judul ATAU Isi
       if (keyword !== '') {
         query = query.or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`);
       }
@@ -132,41 +333,47 @@
       const { data, error } = await query;
 
       if (error) {
-        diaryList.innerHTML = `<p style="color:red;">Gagal memuat catatan: ${error.message}</p>`;
+        diaryList.innerHTML = `<div class="empty-state"><i class="fa-solid fa-triangle-exclamation"></i><p>Gagal memuat catatan: ${error.message}</p></div>`;
         return;
       }
 
-      if (data.length === 0) {
-        diaryList.innerHTML = '<p style="text-align:center; color:#777;">Tidak ada catatan yang ditemukan.</p>';
+      if (!data || data.length === 0) {
+        diaryList.innerHTML = `
+          <div class="empty-state">
+            <i class="fa-regular fa-folder-open"></i>
+            <p>Belum ada catatan diary yang ditemukan.</p>
+          </div>`;
         return;
       }
 
-      // Tampilkan data ke HTML
+      // Format dan tampilkan data
       diaryList.innerHTML = data.map(item => `
-        <div class="diary-card">
-          <h3>${escapeHtml(item.title)}</h3>
-          <p>${escapeHtml(item.content)}</p>
-          <small>📅 ${new Date(item.created_at).toLocaleString('id-ID')}</small>
+        <div class="diary-item">
+          <div class="diary-header">
+            <h3 class="diary-title">${escapeHtml(item.title)}</h3>
+            <span class="diary-date">
+              <i class="fa-regular fa-clock"></i> ${formatDate(item.created_at)}
+            </span>
+          </div>
+          <p class="diary-content">${escapeHtml(item.content)}</p>
         </div>
       `).join('');
     }
 
-    // Debounce listener untuk fitur pencarian (mencegah query berlebihan saat mengetik)
+    // 4. Listener Pencarian (Debounce 300ms)
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
-      searchTimeout = setTimeout(() => {
-        fetchDiaries();
-      }, 300); // Tunggu 300ms setelah user berhenti mengetik
+      searchTimeout = setTimeout(fetchDiaries, 300);
     });
 
-    // Event listener saat filter urutan diubah
+    // 5. Listener Filter Urutan
     sortOrder.addEventListener('change', fetchDiaries);
 
-    // Fungsi menyimpan catatan baru
+    // 6. Listener Simpan Catatan Baru
     diaryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
-      submitBtn.innerText = 'Menyimpan...';
+      submitBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan...';
 
       const title = document.getElementById('title').value;
       const content = document.getElementById('content').value;
@@ -183,15 +390,15 @@
       }
 
       submitBtn.disabled = false;
-      submitBtn.innerText = 'Simpan Catatan';
+      submitBtn.innerHTML = '<i class="fa-solid fa-paper-plane"></i> Simpan ke Diary';
     });
 
-    // Helper untuk menghindari serangan XSS
+    // Helper XSS Prevention
     function escapeHtml(str) {
       return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
     }
 
-    // Jalankan fungsi saat pertama kali halaman dibuka
+    // Load data awal
     fetchDiaries();
   </script>
 </body>
