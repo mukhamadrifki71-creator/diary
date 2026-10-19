@@ -42,7 +42,7 @@
       margin: 0 auto;
     }
 
-    /* Header & Waktu Real-time */
+    /* Header */
     header {
       text-align: center;
       color: white;
@@ -102,7 +102,7 @@
       color: #334155;
     }
 
-    input[type="text"], textarea, select {
+    input[type="text"], input[type="datetime-local"], textarea, select {
       width: 100%;
       padding: 12px 16px;
       border: 1.5px solid var(--border-color);
@@ -114,7 +114,7 @@
       color: var(--text-main);
     }
 
-    input[type="text"]:focus, textarea:focus, select:focus {
+    input[type="text"]:focus, input[type="datetime-local"]:focus, textarea:focus, select:focus {
       outline: none;
       border-color: var(--primary-color);
       background: #ffffff;
@@ -252,12 +252,17 @@
       <form id="diaryForm">
         <div class="form-group">
           <label for="title">Judul Catatan</label>
-          <input type="text" id="title" placeholder="Contoh: Pengalaman hari ini..." required>
+          <input type="text" id="title" placeholder="Contoh: Liburan ke pantai..." required>
+        </div>
+
+        <div class="form-group">
+          <label for="entryDate">Tanggal & Waktu Catatan</label>
+          <input type="datetime-local" id="entryDate" required>
         </div>
 
         <div class="form-group">
           <label for="content">Isi Diary</label>
-          <textarea id="content" placeholder="Ceritakan detail moment atau pikiranmu hari ini..." required></textarea>
+          <textarea id="content" placeholder="Ceritakan detail momen atau pikiranmu hari ini..." required></textarea>
         </div>
 
         <button type="submit" id="submitBtn">
@@ -271,8 +276,8 @@
       <div class="filter-box">
         <input type="text" id="searchInput" placeholder="🔍 Cari berdasarkan judul atau isi...">
         <select id="sortOrder">
-          <option value="desc">📅 Terbaru Pertama</option>
-          <option value="asc">📅 Terlama Pertama</option>
+          <option value="desc">📅 Tanggal Terbaru</option>
+          <option value="asc">📅 Tanggal Terlama</option>
         </select>
       </div>
     </div>
@@ -282,8 +287,8 @@
   </div>
 
   <script>
-    // GANTI DENGAN KREDENSIAL SUPABASE ANDA
-    const SUPABASE_URL = 'https://pfigoreihxbgeqigfgsv.supabase.co';
+    // KREDENSIAL SUPABASE
+    const SUPABASE_URL = 'https://pfigoreihbgeqigfgsv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmaWdvcmVpaHhiZ2VxaWdmZ3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODUzODgsImV4cCI6MjEwNTY2MTM4OH0.jPbcbihPPiAtlCmLihHkHWEETWQOeRNEryRwikH2OlQ';
 
     const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
@@ -293,10 +298,19 @@
     const submitBtn = document.getElementById('submitBtn');
     const searchInput = document.getElementById('searchInput');
     const sortOrder = document.getElementById('sortOrder');
+    const entryDateInput = document.getElementById('entryDate');
 
     let searchTimeout = null;
 
-    // 1. Fungsi Tampilkan Tanggal Hari Ini di Header
+    // 1. Set Default Input Tanggal ke Waktu Sekarang
+    function setDefaultDate() {
+      const now = new Date();
+      now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+      entryDateInput.value = now.toISOString().slice(0, 16);
+    }
+    setDefaultDate();
+
+    // 2. Tampilkan Tanggal Hari Ini di Header
     function updateLiveClock() {
       const now = new Date();
       const options = { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' };
@@ -304,7 +318,7 @@
     }
     updateLiveClock();
 
-    // 2. Format Tanggal untuk Kartu Catatan (misal: "20 Okt 2026, 14:30")
+    // 3. Format Tanggal Tampilan Catatan
     function formatDate(dateString) {
       const date = new Date(dateString);
       return date.toLocaleDateString('id-ID', {
@@ -316,7 +330,7 @@
       });
     }
 
-    // 3. Fungsi Ambil Data Catatan dari Supabase
+    // 4. Ambil Data Catatan dari Supabase
     async function fetchDiaries() {
       const keyword = searchInput.value.trim();
       const isAscending = sortOrder.value === 'asc';
@@ -346,7 +360,6 @@
         return;
       }
 
-      // Format dan tampilkan data
       diaryList.innerHTML = data.map(item => `
         <div class="diary-item">
           <div class="diary-header">
@@ -360,16 +373,16 @@
       `).join('');
     }
 
-    // 4. Listener Pencarian (Debounce 300ms)
+    // 5. Listener Pencarian (Debounce 300ms)
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(fetchDiaries, 300);
     });
 
-    // 5. Listener Filter Urutan
+    // 6. Listener Filter Urutan
     sortOrder.addEventListener('change', fetchDiaries);
 
-    // 6. Listener Simpan Catatan Baru
+    // 7. Simpan Catatan Baru dengan Tanggal Pilihan
     diaryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
@@ -377,15 +390,21 @@
 
       const title = document.getElementById('title').value;
       const content = document.getElementById('content').value;
+      const selectedDate = new Date(entryDateInput.value).toISOString();
 
       const { error } = await supabase
         .from('diaries')
-        .insert([{ title, content }]);
+        .insert([{ 
+          title: title, 
+          content: content, 
+          created_at: selectedDate 
+        }]);
 
       if (error) {
         alert('Gagal menyimpan: ' + error.message);
       } else {
         diaryForm.reset();
+        setDefaultDate();
         await fetchDiaries();
       }
 
