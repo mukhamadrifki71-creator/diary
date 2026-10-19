@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Diary Saya</title>
+  <!-- Supabase JS CDN -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      max-width: 600px;
+      margin: 30px auto;
+      padding: 0 15px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1, h2 { text-align: center; }
+    
+    /* Style Form & Card */
+    form, .filter-container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      margin-bottom: 20px;
+    }
+    input[type="text"], textarea, select {
+      width: 100%;
+      padding: 10px;
+      margin-top: 8px;
+      margin-bottom: 15px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    textarea { height: 100px; resize: vertical; }
+    button {
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover { background-color: #45a049; }
+    
+    /* Layout Pencarian & Filter */
+    .filter-box {
+      display: flex;
+      gap: 10px;
+    }
+    .filter-box input { margin-bottom: 0; flex: 2; }
+    .filter-box select { margin-bottom: 0; flex: 1; }
+
+    .diary-card {
+      background: white;
+      padding: 15px;
+      border-radius: 8px;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+      margin-bottom: 15px;
+    }
+    .diary-card h3 { margin-top: 0; color: #2c3e50; }
+    .diary-card small { color: #888; }
+    .highlight { background-color: #fff3cd; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+  <h1>📖 Diary Harian</h1>
+
+  <!-- Form Tambah Catatan -->
+  <form id="diaryForm">
+    <h3>Tambah Catatan Baru</h3>
+    <label for="title">Judul Catatan</label>
+    <input type="text" id="title" placeholder="Contoh: Hari yang menyenangkan..." required>
+
+    <label for="content">Isi Diary</label>
+    <textarea id="content" placeholder="Tuliskan pengalamanmu hari ini..." required></textarea>
+
+    <button type="submit" id="submitBtn">Simpan Catatan</button>
+  </form>
+
+  <h2>Daftar Catatan</h2>
+
+  <!-- Area Pencarian & Filter -->
+  <div class="filter-container">
+    <div class="filter-box">
+      <input type="text" id="searchInput" placeholder="🔍 Cari judul atau isi diary...">
+      <select id="sortOrder">
+        <option value="desc">Terbaru</option>
+        <option value="asc">Terlama</option>
+      </select>
+    </div>
+  </div>
+
+  <div id="diaryList">Memuat catatan...</div>
+
+  <script>
+    // GANTI DENGAN KREDENSIAL SUPABASE ANDA
+    const SUPABASE_URL = 'https://pfigoreihxbgeqigfgsv.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmaWdvcmVpaHhiZ2VxaWdmZ3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODUzODgsImV4cCI6MjEwNTY2MTM4OH0.jPbcbihPPiAtlCmLihHkHWEETWQOeRNEryRwikH2OlQ';
+    
+    const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    const diaryForm = document.getElementById('diaryForm');
+    const diaryList = document.getElementById('diaryList');
+    const submitBtn = document.getElementById('submitBtn');
+    const searchInput = document.getElementById('searchInput');
+    const sortOrder = document.getElementById('sortOrder');
+
+    let searchTimeout = null;
+
+    // Fungsi Mengambil & Memfilter Catatan dari Supabase
+    async function fetchDiaries() {
+      const keyword = searchInput.value.trim();
+      const isAscending = sortOrder.value === 'asc';
+
+      // Query dasar ke Supabase
+      let query = supabase
+        .from('diaries')
+        .select('*')
+        .order('created_at', { ascending: isAscending });
+
+      // Jika ada kata kunci pencarian, filter berdasarkan Judul ATAU Isi
+      if (keyword !== '') {
+        query = query.or(`title.ilike.%${keyword}%,content.ilike.%${keyword}%`);
+      }
+
+      const { data, error } = await query;
+
+      if (error) {
+        diaryList.innerHTML = `<p style="color:red;">Gagal memuat catatan: ${error.message}</p>`;
+        return;
+      }
+
+      if (data.length === 0) {
+        diaryList.innerHTML = '<p style="text-align:center; color:#777;">Tidak ada catatan yang ditemukan.</p>';
+        return;
+      }
+
+      // Tampilkan data ke HTML
+      diaryList.innerHTML = data.map(item => `
+        <div class="diary-card">
+          <h3>${escapeHtml(item.title)}</h3>
+          <p>${escapeHtml(item.content)}</p>
+          <small>📅 ${new Date(item.created_at).toLocaleString('id-ID')}</small>
+        </div>
+      `).join('');
+    }
+
+    // Debounce listener untuk fitur pencarian (mencegah query berlebihan saat mengetik)
+    searchInput.addEventListener('input', () => {
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(() => {
+        fetchDiaries();
+      }, 300); // Tunggu 300ms setelah user berhenti mengetik
+    });
+
+    // Event listener saat filter urutan diubah
+    sortOrder.addEventListener('change', fetchDiaries);
+
+    // Fungsi menyimpan catatan baru
+    diaryForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Menyimpan...';
+
+      const title = document.getElementById('title').value;
+      const content = document.getElementById('content').value;
+
+      const { error } = await supabase
+        .from('diaries')
+        .insert([{ title, content }]);
+
+      if (error) {
+        alert('Gagal menyimpan: ' + error.message);
+      } else {
+        diaryForm.reset();
+        await fetchDiaries();
+      }
+
+      submitBtn.disabled = false;
+      submitBtn.innerText = 'Simpan Catatan';
+    });
+
+    // Helper untuk menghindari serangan XSS
+    function escapeHtml(str) {
+      return str.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    }
+
+    // Jalankan fungsi saat pertama kali halaman dibuka
+    fetchDiaries();
+  </script>
+</body>
+</html>
