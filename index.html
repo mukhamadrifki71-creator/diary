@@ -242,6 +242,12 @@
       color: #0f172a;
     }
 
+    .diary-meta {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
     .diary-date {
       font-size: 0.8rem;
       background: #e0e7ff;
@@ -253,6 +259,26 @@
       display: inline-flex;
       align-items: center;
       gap: 5px;
+    }
+
+    /* Tombol Hapus */
+    .btn-delete {
+      background: #fee2e2;
+      color: #dc2626;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.85rem;
+      transition: all 0.2s ease;
+      box-shadow: none;
+      width: auto;
+    }
+
+    .btn-delete:hover {
+      background: #ef4444;
+      color: white;
+      transform: none;
     }
 
     .diary-content {
@@ -279,7 +305,7 @@
       body { padding: 20px 12px; }
       .filter-box { flex-direction: column; gap: 0; }
       .filter-box input, .filter-box select { margin-bottom: 12px; }
-      .diary-header { flex-direction: column; gap: 6px; }
+      .diary-header { flex-direction: column; gap: 8px; }
       #toastContainer { left: 20px; right: 20px; }
     }
   </style>
@@ -344,7 +370,6 @@
     const SUPABASE_URL = 'https://pfigoreihxbgeqigfgsv.supabase.co';
     const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBmaWdvcmVpaHhiZ2VxaWdmZ3N2Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTAwODUzODgsImV4cCI6MjEwNTY2MTM4OH0.jPbcbihPPiAtlCmLihHkHWEETWQOeRNEryRwikH2OlQ';
 
-    // Penggunaan nama variabel 'supabaseClient' untuk menghindari bentrok deklarasi
     const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
     const diaryForm = document.getElementById('diaryForm');
@@ -357,7 +382,7 @@
 
     let searchTimeout = null;
 
-    // 1. Fungsi Tampilkan Notifikasi Toast
+    // 1. Tampilkan Notifikasi Toast
     function showToast(message, type = 'success') {
       const toast = document.createElement('div');
       toast.className = `toast ${type}`;
@@ -438,25 +463,49 @@
         <div class="diary-item">
           <div class="diary-header">
             <h3 class="diary-title">${escapeHtml(item.title)}</h3>
-            <span class="diary-date">
-              <i class="fa-regular fa-clock"></i> ${formatDate(item.created_at)}
-            </span>
+            <div class="diary-meta">
+              <span class="diary-date">
+                <i class="fa-regular fa-clock"></i> ${formatDate(item.created_at)}
+              </span>
+              <button class="btn-delete" onclick="deleteDiary(${item.id})" title="Hapus Catatan">
+                <i class="fa-solid fa-trash-can"></i>
+              </button>
+            </div>
           </div>
           <p class="diary-content">${escapeHtml(item.content)}</p>
         </div>
       `).join('');
     }
 
-    // 6. Listener Pencarian (Debounce 300ms)
+    // 6. Fungsi Hapus Catatan
+    async function deleteDiary(id) {
+      if (!confirm('Apakah Anda yakin ingin menghapus catatan ini?')) {
+        return;
+      }
+
+      const { error } = await supabaseClient
+        .from('diaries')
+        .delete()
+        .eq('id', id);
+
+      if (error) {
+        showToast('Gagal menghapus: ' + error.message, 'error');
+      } else {
+        showToast('Catatan berhasil dihapus!', 'success');
+        fetchDiaries(); // Refresh daftar catatan
+      }
+    }
+
+    // 7. Listener Pencarian
     searchInput.addEventListener('input', () => {
       clearTimeout(searchTimeout);
       searchTimeout = setTimeout(fetchDiaries, 300);
     });
 
-    // 7. Listener Filter Urutan
+    // 8. Listener Filter Urutan
     sortOrder.addEventListener('change', fetchDiaries);
 
-    // 8. Simpan Catatan Baru
+    // 9. Simpan Catatan Baru
     diaryForm.addEventListener('submit', async (e) => {
       e.preventDefault();
       submitBtn.disabled = true;
